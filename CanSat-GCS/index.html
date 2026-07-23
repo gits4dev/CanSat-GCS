@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>
+        CanSat Ground Control Station
+    </title>
+
+    <link rel="stylesheet"
+          href="css/style.css">
+
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet/dist/leaflet.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+</head>
+
+<body>
+
+<!-- ==================================
+     HEADER
+================================== -->
+
+<div class="mission-header">
+
+    <div class="mission-left">
+
+        <h1>
+            🛰 CanSat Ground Control Station
+        </h1>
+
+        <p>
+            Summer Internship Project
+        </p>
+
+    </div>
+
+    <div class="mission-center">
+
+        Mission Time :
+
+        <span id="missionElapsed">
+
+            00:00:00
+
+        </span>
+
+    </div>
+
+    <div class="mission-right">
+
+        <div class="health-indicator">
+
+            GPS
+            <span id="gpsHealth">🟢</span>
+
+        </div>
+
+        <div class="health-indicator">
+
+            Radio
+            <span id="radioHealth">🟢</span>
+
+        </div>
+
+        <div class="health-indicator">
+
+            Camera
+            <span id="cameraHealth">🟢</span>
+
+        </div>
+
+        <div class="health-indicator">
+
+            Battery
+            <span id="batteryHealth">🟢</span>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ==================================
+     TOP CONTROL BAR
+================================== -->
+
+<header class="top-control-bar">
+
+    <button id="startBtn">
+        ▶ Start Telemetry
+    </button>
+
+    <button id="stopBtn">
+        ⏹ Stop Telemetry
+    </button>
+
+    <button id="csvBtn">
+        📄 Export CSV
+    </button>
+
+    <button id="graphBtn">
+        📊 Export Graph
+    </button>
+
+    <button id="syncBtn">
+        🕒 Sync Time
+    </button>
+
+    <button id="resetBtn">
+        🔄 Reset Packet
+    </button>
+
+</header>
+
+<!-- ==================================
+     ROW 1
+================================== -->
+
+<div class="dashboard-row">
+
+    <!-- Mission Status -->
+
+    <section class="status-panel">
+
+        <h2>
+            Mission Status
+        </h2>
+
+        <div class="status-card">
+
+            <span>
+                Telemetry
+            </span>
+
+            <h3 id="telemetryStatus">
+                READY
+            </h3>
+
+        </div>
+
+        <div class="status-card">
+
+            <span>
+                Packet Count
+            </span>
+
+            <h3 id="packetNumber">
+                0
+            </h3>
+
+        </div>
+
+        <div class="status-card">
+
+            <span>
+                Current Time
+            </span>
+
+            <h3 id="currentTime">
+                --
+            </h3>
+
+        </div>
+
+    </section>
+
+    <!-- Mission Control -->
+
+    <section class="mission-panel">
+
+        <h2>
+            Mission Control
+        </h2>
+
+        <div class="mission-buttons">
+
+            <button id="separationBtn">
+                Payload Separation
+            </button>
+
+            <button id="parachuteBtn">
+                Emergency Parachute
+            </button>
+
+            <button id="redundantBtn">
+                Redundant Activation
+            </button>
+
+        </div>
+
+        <div class="command-status">
+
+            <p id="commandStatus">
+
+                Status : READY
+
+            </p>
+
+            <p id="lastCommand">
+
+                Last Command : NONE
+
+            </p>
+
+        </div>
+
+        <ul id="commandLog"></ul>
+
+    </section>
+
+    <!-- Camera Feed -->
+
+    <section class="camera-panel">
+
+        <h2>
+            Camera Feed
+        </h2>
+
+        <video id="cameraFeed"
+               autoplay
+               playsinline
+               muted>
+
+        </video>
+
+        <div class="camera-controls">
+
+            <button id="startCameraBtn">
+                Start
+            </button>
+
+            <button id="stopCameraBtn">
+                Stop
+            </button>
+
+            <button id="cameraCsvBtn">
+                CSV
+            </button>
+
+            <button id="cameraGraphBtn">
+                Graph
+            </button>
+
+        </div>
+
+    </section>
+
+    <!-- Error System -->
+
+    <section class="error-panel">
+
+        <h2>
+            Error Code System
+        </h2>
+
+        <div class="error-display">
+
+            <div class="digit" id="digit1">
+                0
+            </div>
+
+            <div class="digit" id="digit2">
+                0
+            </div>
+
+            <div class="digit" id="digit3">
+                0
+            </div>
+
+            <div class="digit" id="digit4">
+                0
+            </div>
+
+        </div>
+
+        <h1 id="errorCode">
+
+            0000
+
+        </h1>
+
+        <p id="errorMessage">
+
+            All Systems Normal
+
+        </p>
+
+    </section>
+
+</div>
+
+<!-- ==================================
+     ROW 2
+================================== -->
+
+<div class="live-data-row">
+
+    <!-- Telemetry -->
+
+    <section class="telemetry-panel">
+
+        <h2>
+            Telemetry Display
+        </h2>
+
+        <div class="telemetry-slider">
+
+            <div id="telemetryTitle">
+
+                ALTITUDE
+
+            </div>
+
+            <div id="telemetryValue">
+
+                0 m
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- GPS -->
+
+    <section class="gps-panel">
+
+        <h2>
+            GPS Tracking Map
+        </h2>
+
+        <div id="map"></div>
+
+        <div class="gps-info">
+
+            <p>
+
+                Latitude :
+
+                <span id="gpsLatitude">
+
+                    0
+
+                </span>
+
+            </p>
+
+            <p>
+
+                Longitude :
+
+                <span id="gpsLongitude">
+
+                    0
+
+                </span>
+
+            </p>
+
+            <p>
+
+                Tracked Points :
+
+                <span id="trackCount">
+
+                    0
+
+                </span>
+
+            </p>
+
+        </div>
+
+    </section>
+
+    <!-- Graph -->
+
+    <section class="graph-panel">
+
+        <h2>
+            Real-Time Graphs
+        </h2>
+
+        <div class="graph-slider-container">
+
+            <button id="prevGraph">
+
+                ◀
+
+            </button>
+
+            <div class="graph-view">
+
+                <h3 id="graphTitle">
+
+                    Altitude Graph
+
+                </h3>
+
+                <canvas id="telemetryChart">
+
+                </canvas>
+
+            </div>
+
+            <button id="nextGraph">
+
+                ▶
+
+            </button>
+
+        </div>
+
+    </section>
+
+    <!-- Orientation -->
+
+    <section class="orientation-panel">
+
+        <h2>
+            Orientation & Flight Status
+        </h2>
+
+        <div id="orientationCanvas">
+
+        </div>
+
+        <div class="orientation-info">
+
+            <div class="instrument-card">
+
+                <span>Roll</span>
+
+                <strong id="rollValue">
+                    0°
+                </strong>
+
+            </div>
+
+            <div class="instrument-card">
+
+                <span>Pitch</span>
+
+                <strong id="pitchValue">
+                    0°
+                </strong>
+
+            </div>
+
+            <div class="instrument-card">
+
+                <span>Yaw</span>
+
+                <strong id="yawValue">
+                    0°
+                </strong>
+
+            </div>
+
+            <div class="instrument-card">
+
+                <span>Heading</span>
+
+                <strong id="headingValue">
+                    North
+                </strong>
+
+            </div>
+
+            <div class="instrument-card">
+
+                <span>Flight Mode</span>
+
+                <strong id="flightMode">
+                    READY
+                </strong>
+
+            </div>
+
+            <div class="instrument-card">
+
+                <span>Payload</span>
+
+                <strong id="payloadStatus">
+                    ACTIVE
+                </strong>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</div>
+
+<script src="js/main.js"></script>
+<script src="js/export.js"></script>
+<script src="js/missionControl.js"></script>
+<script src="js/telemetry.js"></script>
+<script src="js/errorCode.js"></script>
+<script src="js/graphs.js"></script>
+<script src="js/map.js"></script>
+<script src="js/orientation.js"></script>
+<script src="js/video.js"></script>
+
+</body>
+</html>
